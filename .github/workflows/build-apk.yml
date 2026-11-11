@@ -1,0 +1,56 @@
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get project files
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Extract ZIP
+        run: |
+          ZIP=$(find . -maxdepth 1 -iname "*.zip" -type f | head -n 1)
+          test -n "$ZIP"
+          mkdir -p app
+          unzip -q "$ZIP" -d app
+          PACKAGE=$(find app -name package.json -not -path '*/node_modules/*' | head -n 1)
+          test -n "$PACKAGE"
+          APP_DIR=$(dirname "$PACKAGE")
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+
+      - name: Install and build app
+        run: |
+          cd "$APP_DIR"
+          npm install
+          npm run build
+          npm install @capacitor/core @capacitor/android
+          npm install -D @capacitor/cli
+          echo '{"appId":"com.mazraati.sheep","appName":"مزرعتي للأغنام","webDir":"dist"}' > capacitor.config.json
+          npx cap add android
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mazraati-APK
+          path: ${{ env.APP_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
+          
