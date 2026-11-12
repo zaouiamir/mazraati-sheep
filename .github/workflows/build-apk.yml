@@ -46,7 +46,7 @@ jobs:
           npx cap sync android
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -Dkotlin.stdlib.jdk.variants.version=1.8.22
 
       - name: Save APK
         uses: actions/upload-artifact@v4
